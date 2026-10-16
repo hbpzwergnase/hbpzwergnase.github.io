@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demian's Irregular Verbs Trainer</title>
+    <style>
+        :root {
+            --primary: #4a6fa5;
+            --success: #2ec4b6;
+            --danger: #e71d36;
+            --dark: #011627;
+            --light: #f6f7f8;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--light);
+            color: var(--dark);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        h1, h2 { text-align: center; color: var(--primary); margin-top: 0; }
+        .config-zone {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: #fafafa;
+            border: 2px dashed #ccc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        .threshold-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+            font-size: 15px;
+        }
+        .threshold-group input {
+            width: 60px;
+            padding: 6px;
+            font-size: 15px;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn-alt { background-color: #6c757d; }
+        .button-row { display: flex; gap: 10px; }
+        .quiz-zone {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .prompt {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: var(--dark);
+        }
+        .input-group {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .input-field {
+            display: flex;
+            flex-direction: column;
+        }
+        .input-field label {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-align: left;
+            color: #666;
+        }
+        input[type="text"] {
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            outline: none;
+        }
+        input[type="text"]:focus {
+            border-color: var(--primary);
+        }
+        .feedback {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 6px;
+            display: none;
+        }
+        .feedback.correct { background-color: #d4edda; color: #155724; display: block; }
+        .feedback.wrong { background-color: #f8d7da; color: #721c24; display: block; }
+        .feedback.removed { background-color: #e2f0d9; color: #385723; display: block; border: 2px solid #385723; }
+        
+        .scoreboard-zone { margin-top: 30px; display: none; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+        .text-success { color: #2b753c; font-weight: bold; }
+        .text-danger { color: #b72733; font-weight: bold; }
+        .empty-state { text-align: center; font-style: italic; color: #888; padding: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🇬🇧 Demian's Irregular Verbs Trainer 🇬🇧</h1>
+    
+    <div class="config-zone" id="importZone">
+        <div class="threshold-group">
+            <label for="thresholdX">Schwellenwert (Entfernen wenn Richtig - Falsch ≥ Schwellenwert):</label>
+            <input type="number" id="thresholdX" value="3" min="1">
+        </div>
+        <p style="margin: 5px 0 15px 0; color: #666; font-size: 13px;">Verben fliegen aus der Liste und dem Scoreboard, sobald sie sicher beherrscht werden.</p>
+        <div class="button-row">
+            <input type="file" id="csvFile" accept=".csv" style="display: none;">
+            <button class="btn" onclick="document.getElementById('csvFile').click()">CSV-Datei auswählen</button>
+            <button class="btn btn-alt" onclick="loadSampleData()">More! 4 laden</button>
+        </div>
+    </div>
+
+    <!-- Quiz Zone -->
+    <div class="quiz-zone" id="quizZone">
+        <div class="prompt" id="germanPrompt">Wort</div>
+        
+        <form id="quizForm" onsubmit="handleNormalizeSubmit(event)">
+            <div class="input-group">
+                <div class="input-field">
+                    <label>Present Tense</label>
+                    <input type="text" id="inputPres" autocomplete="off" required>
+                </div>
+                <div class="input-field">
+                    <label>Past Simple</label>
+                    <input type="text" id="inputPast" autocomplete="off" required>
+                </div>
+                <div class="input-field">
+                    <label>Past Participle</label>
+                    <input type="text" id="inputPart" autocomplete="off" required>
+                </div>
+            </div>
+            <button type="submit" class="btn" id="submitBtn">Check</button>
+        </form>
+
+        <div id="feedback" class="feedback"></div>
+    </div>
+</div>
+
+<!-- Scoreboard Zone -->
+<div class="container scoreboard-zone" id="scoreboardZone">
+    <h2>📊 Scoreboard -- <span id="verbCount">0</span> verb(s) left</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>German</th>
+                <th>Correct (✅)</th>
+                <th>Incorrect (❌)</th>
+            </tr>
+        </thead>
+        <tbody id="scoreboardBody"></tbody>
+    </table>
+</div>
+
+<script>
+    let verbs = [];
+    let currentVerb = null;
+    let isWaitingForNext = false;
+    let thresholdX = 3;
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playCheeringSound() {
+        const duration = 1.5;
+        const freqs = [261.63, 329.63, 392.00, 523.25]; 
+        freqs.forEach((f, index) => {
+            setTimeout(() => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(f, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(f * 2, audioCtx.currentTime + duration);
+                
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            }, index * 80);
+        });
+    }
+
+    document.getElementById('csvFile').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            parseCSV(e.target.result);
+        };
+        reader.readAsText(file);
+    });
+
+    function loadSampleData() {
+        const sample = `sein,be,was/were,been\nschlagen,beat,beat,beaten\nwerden,become,became,become\nbeginnen,begin,began,begun\nblasen,blow,blew,blown\nbeugen; biegen,bend,bent,bent\n(zer-)brechen,break,broke,broken\nbringen,bring,brought,brought\nbauen,build,built,built\n(ver-)brennen,burn,burnt|burned,burnt|burned\nkaufen,buy,bought,bought\nfangen,catch,caught,caught\n(aus-)wählen,choose,chose,chosen\nkommen,come,came,come\nkosten,cost,cost,cost\nschneiden,cut,cut,cut\ntun/machen,do,did,done\nzeichnen,draw,drew,drawn\nträumen,dream,dreamt|dreamed,dreamt|dreamed\ntrinken,drink,drank,drunk\nfahren/treiben,drive,drove,driven\nessen,eat,ate,eaten\nfallen,fall,fell,fallen\neinschlafen,fall asleep,fell asleep,fallen asleep\nfüttern,feed,fed,fed\nfühlen,feel,felt,felt\nkämpfen,fight,fought,fought\nfinden,find,found,found\nfliehen,flee,fled,fled\nfliegen,fly,flew,flown\nvergessen,forget,forgot,forgotten\nvergeben,forgive,forgave,forgiven\neinfrieren/erstarren,freeze,froze,frozen\nbekommen/werden,get,got,got\naufstehen,get up,got up,got up\ngeben,give,gave,given\ngehen/fahren,go,went,gone\nwachsen/anbauen,grow,grew,grown\nhängen,hang,hung,hung\nabhängen,hang out,hung out,hung out\nhaben,have,had,had\nhören,hear,heard,heard\n(sich) verstecken,hide,hid,hidden\nschlagen,hit,hit,hit\n(fest-)halten,hold,held,held\n(sich) verletzen/schmerzen,hurt,hurt,hurt\n(be-)halten,keep,kept,kept\nwissen/kennen,know,knew,known\nlernen,learn,learnt|learned,learnt|learned\nverlassen,leave,left,left\nverleihen,lend,lent,lent\nlassen,let,let,let\nverlieren,lose,lost,lost\nmachen,make,made,made\nmeinen,mean,meant,meant\ntreffen,meet,met,met\n(be-)zahlen,pay,paid,paid\nlegen/setzen/stellen,put,put,put\nlesen,read,read,read\nreiten/fahren,ride,rode,ridden\nläuten,ring,rang,rung\nlaufen,run,ran,run\nsagen,say,said,said\nsehen,see,saw,seen\nverkaufen,sell,sold,sold\nsenden/schicken,send,sent,sent\nlosfahren/aufbrechen,set off,set off,set off\nschütteln,shake,shook,shaken\nscheinen,shine,shone,shone\nschießen,shoot,shot,shot\nzeigen,show,showed,shown/showed\nsingen,sing,sang,sung\nsitzen/sich setzen,sit,sat,sat\nschlafen,sleep,slept,slept\nriechen,smell,smelt/smelled,smelt/smelled\nsprechen,speak,spoke,spoken\nverbringen/ausgeben,spend,spent,spent\nstehen,stand,stood,stood\nstehlen,steal,stole,stolen\nschwimmen,swim,swam,swum\nnehmen,take,took,taken\nlehren/unterrichten,teach,taught,taught\nsagen/erzählen,tell,told,told\ndenken,think,thought,thought\nwerfen,throw,threw,thrown\nverstehen,understand,understood,understood\naufwachen,wake up,woke up,woken up\ntragen (Kleidung),wear,wore,worn\ngewinnen,win,won,won\nschreiben,write,wrote,written`;
+        parseCSV(sample);
+    }
+
+    function parseCSV(text) {
+        verbs = [];
+        // Read configuration dynamic threshold right during import
+        thresholdX = parseInt(document.getElementById('thresholdX').value) || 3;
+        
+        const lines = text.split(/\r?\n/);
+        lines.forEach(line => {
+            const parts = line.split(',');
+            if (parts.length >= 4 && parts[0].trim() !== "") {
+                verbs.push({
+                    de: parts[0].trim(),
+                    pres: parts[1].trim(),
+                    past: parts[2].trim(),
+                    part: parts[3].trim(),
+                    correct: 0,
+                    incorrect: 0
+                });
+            }
+        });
+        if (verbs.length > 0) {
+            document.getElementById('importZone').style.display = 'none';
+            document.getElementById('quizZone').style.display = 'block';
+            document.getElementById('scoreboardZone').style.display = 'block';
+            updateScoreboard();
+            nextQuestion();
+        } else {
+            alert("Keine gültigen Verben in der CSV gefunden.");
+        }
+    }
+
+    function nextQuestion() {
+        if (verbs.length === 0) {
+            document.getElementById('quizZone').innerHTML = "<div class='prompt'>🎉 Great! You're done!</div>";
+            return;
+        }
+
+        isWaitingForNext = false;
+        document.getElementById('quizForm').reset();
+        document.getElementById('feedback').className = 'feedback';
+        document.getElementById('submitBtn').disabled = false;
+
+        let totalWeight = 0;
+        const weights = verbs.map(v => {
+            const weight = Math.exp(v.incorrect - v.correct);
+            totalWeight += weight;
+            return weight;
+        });
+
+        let random = Math.random() * totalWeight;
+        currentVerb = verbs[verbs.length - 1]; // Fallback
+        for (let i = 0; i < verbs.length; i++) {
+            random -= weights[i];
+            if (random <= 0) {
+                currentVerb = verbs[i];
+                break;
+            }
+        }
+
+        document.getElementById('germanPrompt').textContent = currentVerb.de;
+        document.getElementById('inputPres').focus();
+    }
+
+    function handleNormalizeSubmit(e) {
+        e.preventDefault();
+        if (isWaitingForNext) return;
+
+        const ansPres = document.getElementById('inputPres').value.trim().toLowerCase();
+        const ansPast = document.getElementById('inputPast').value.trim().toLowerCase();
+        const ansPart = document.getElementById('inputPart').value.trim().toLowerCase();
+
+        const isPresCorrect = checkAnswer(ansPres, currentVerb.pres);
+        const isPastCorrect = checkAnswer(ansPast, currentVerb.past);
+        const isPartCorrect = checkAnswer(ansPart, currentVerb.part);
+        const feedbackEl = document.getElementById('feedback');
+        document.getElementById('submitBtn').disabled = true;
+
+        if (isPresCorrect && isPastCorrect && isPartCorrect) {
+            currentVerb.correct++;
+            if ((currentVerb.correct - currentVerb.incorrect) >= thresholdX) {
+                feedbackEl.innerHTML = `🎉 Correct! <strong>${currentVerb.de}</strong> has reached the threshold!`;
+                feedbackEl.className = "feedback removed";
+                // Remove from core data array
+                verbs = verbs.filter(v => v !== currentVerb);
+                playCheeringSound();
+                updateScoreboard();
+                setTimeout(nextQuestion, 2000);
+            } else {
+                feedbackEl.textContent = "🎉 Well done!";
+                feedbackEl.className = "feedback correct";
+                playCheeringSound();
+                updateScoreboard();
+                setTimeout(nextQuestion, 1500);
+            }
+        } else {
+            currentVerb.incorrect++;
+            feedbackEl.innerHTML = `❌ That's not quite right.<br><strong>Correct answer:</strong> ${currentVerb.pres} | ${currentVerb.past} | ${currentVerb.part}`;
+            feedbackEl.className = "feedback wrong";
+            updateScoreboard();
+            isWaitingForNext = true;
+            setTimeout(nextQuestion, 5000);
+        }
+    }
+
+    function checkAnswer(input, target) {
+        const clean = (str) => str.toLowerCase().replace(/\s+/g, '');
+        const targetOptions = target.split('|');
+        return targetOptions.some(opt => clean(input) === clean(opt));
+    }
+
+    function updateScoreboard() {
+        document.getElementById('verbCount').textContent = verbs.length;
+        const tbody = document.getElementById('scoreboardBody');
+        tbody.innerHTML = '';
+        if (verbs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Scoreboard does not contain any more verbs. You're all done!</td></tr>`;
+            return;
+        }
+        verbs.forEach(v => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <th>${v.de}</th>
+                <th>${v.correct}</th>
+                <th>${v.incorrect}</th>
+            `;
+
+            tbody.appendChild(tr);
+        });
+    }
+
+
+</script>
+</body>
+</html>
