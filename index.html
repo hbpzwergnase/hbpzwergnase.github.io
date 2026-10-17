@@ -30,6 +30,7 @@
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
             margin-bottom: 20px;
+            box-sizing: border-box;
         }
         h1, h2 { text-align: center; color: var(--primary); margin-top: 0; }
         .config-zone {
@@ -62,15 +63,17 @@
             background-color: var(--primary);
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 12px 20px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 15px;
             font-weight: bold;
+            width: 100%;
+            max-width: 250px;
         }
         .btn:hover { opacity: 0.9; }
         .btn-alt { background-color: #6c757d; }
-        .button-row { display: flex; gap: 10px; }
+        .button-row { display: flex; gap: 10px; width: 100%; justify-content: center; }
         .quiz-zone {
             display: none;
             text-align: center;
@@ -82,6 +85,8 @@
             margin-bottom: 20px;
             color: var(--dark);
         }
+        
+        /* standardmäßiges Desktop Layout (Nebeneinander) */
         .input-group {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -105,6 +110,8 @@
             border: 2px solid #ccc;
             border-radius: 6px;
             outline: none;
+            box-sizing: border-box;
+            width: 100%;
         }
         input[type="text"]:focus {
             border-color: var(--primary);
@@ -121,13 +128,43 @@
         .feedback.wrong { background-color: #f8d7da; color: #721c24; display: block; }
         .feedback.removed { background-color: #e2f0d9; color: #385723; display: block; border: 2px solid #385723; }
         
-        .scoreboard-zone { margin-top: 30px; display: none; }
+        .scoreboard-zone { margin-top: 30px; display: none; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
         th { background-color: #f2f2f2; }
         .text-success { color: #2b753c; font-weight: bold; }
         .text-danger { color: #b72733; font-weight: bold; }
         .empty-state { text-align: center; font-style: italic; color: #888; padding: 20px; }
+
+        /* --- MOBILGERÄTE LAYOUT (Wird aktiv, wenn Bildschirm schmaler als 600px ist) --- */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .container { padding: 15px; }
+            .prompt { font-size: 24px; }
+            
+            /* Eingabefelder untereinander anzeigen */
+            .input-group {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            .input-field label {
+                font-size: 14px;
+                margin-bottom: 3px;
+            }
+            input[type="text"] {
+                padding: 14px; /* Größeres Touch-Ziel auf Smartphones */
+                font-size: 18px; /* Verhindert automatisches iOS-Zoom-In beim Tippen */
+            }
+            .button-row {
+                flex-direction: column;
+                align-items: center;
+            }
+            .btn { max-width: 100%; width: 100%; }
+            .threshold-group { flex-direction: column; text-align: center; }
+            
+            /* Scoreboard Tabelle für Mobilgeräte scrollbar machen */
+            th, td { padding: 8px 5px; font-size: 13px; }
+        }
     </style>
 </head>
 <body>
@@ -140,10 +177,10 @@
             <label for="thresholdX">Schwellenwert (Entfernen wenn Richtig - Falsch ≥ Schwellenwert):</label>
             <input type="number" id="thresholdX" value="3" min="1">
         </div>
-        <p style="margin: 5px 0 15px 0; color: #666; font-size: 13px;">Verben fliegen aus der Liste und dem Scoreboard, sobald sie sicher beherrscht werden.</p>
+        <p style="margin: 5px 0 15px 0; color: #666; font-size: 13px; text-align: center;">Verben fliegen aus der Liste und dem Scoreboard, sobald sie sicher beherrscht werden.</p>
         <div class="button-row">
             <input type="file" id="csvFile" accept=".csv" style="display: none;">
-            <button class="btn" onclick="document.getElementById('csvFile').click()">CSV-Datei auswählen</button>
+            <button class="btn" onclick="document.getElementById('csvFile').click()">CSV auswählen</button>
             <button class="btn btn-alt" onclick="loadSampleData()">More! 4 laden</button>
         </div>
     </div>
@@ -156,15 +193,15 @@
             <div class="input-group">
                 <div class="input-field">
                     <label>Present Tense</label>
-                    <input type="text" id="inputPres" autocomplete="off" required>
+                    <input type="text" id="inputPres" autocomplete="off" autocapitalize="none" autocorrect="off" inputmode="text" required>
                 </div>
                 <div class="input-field">
                     <label>Past Simple</label>
-                    <input type="text" id="inputPast" autocomplete="off" required>
+                    <input type="text" id="inputPast" autocomplete="off" autocapitalize="none" autocorrect="off" inputmode="text" required>
                 </div>
                 <div class="input-field">
                     <label>Past Participle</label>
-                    <input type="text" id="inputPart" autocomplete="off" required>
+                    <input type="text" id="inputPart" autocomplete="off" autocapitalize="none" autocorrect="off" inputmode="text" required>
                 </div>
             </div>
             <button type="submit" class="btn" id="submitBtn">Check</button>
@@ -229,7 +266,7 @@
     });
 
     function loadSampleData() {
-        const sample = `sein,be,was/were,been\nschlagen,beat,beat,beaten\nwerden,become,became,become\nbeginnen,begin,began,begun\nblasen,blow,blew,blown\nbeugen; biegen,bend,bent,bent\n(zer-)brechen,break,broke,broken\nbringen,bring,brought,brought\nbauen,build,built,built\n(ver-)brennen,burn,burnt|burned,burnt|burned\nkaufen,buy,bought,bought\nfangen,catch,caught,caught\n(aus-)wählen,choose,chose,chosen\nkommen,come,came,come\nkosten,cost,cost,cost\nschneiden,cut,cut,cut\ntun/machen,do,did,done\nzeichnen,draw,drew,drawn\nträumen,dream,dreamt|dreamed,dreamt|dreamed\ntrinken,drink,drank,drunk\nfahren/treiben,drive,drove,driven\nessen,eat,ate,eaten\nfallen,fall,fell,fallen\neinschlafen,fall asleep,fell asleep,fallen asleep\nfüttern,feed,fed,fed\nfühlen,feel,felt,felt\nkämpfen,fight,fought,fought\nfinden,find,found,found\nfliehen,flee,fled,fled\nfliegen,fly,flew,flown\nvergessen,forget,forgot,forgotten\nvergeben,forgive,forgave,forgiven\neinfrieren/erstarren,freeze,froze,frozen\nbekommen/werden,get,got,got\naufstehen,get up,got up,got up\ngeben,give,gave,given\ngehen/fahren,go,went,gone\nwachsen/anbauen,grow,grew,grown\nhängen,hang,hung,hung\nabhängen,hang out,hung out,hung out\nhaben,have,had,had\nhören,hear,heard,heard\n(sich) verstecken,hide,hid,hidden\nschlagen,hit,hit,hit\n(fest-)halten,hold,held,held\n(sich) verletzen/schmerzen,hurt,hurt,hurt\n(be-)halten,keep,kept,kept\nwissen/kennen,know,knew,known\nlernen,learn,learnt|learned,learnt|learned\nverlassen,leave,left,left\nverleihen,lend,lent,lent\nlassen,let,let,let\nverlieren,lose,lost,lost\nmachen,make,made,made\nmeinen,mean,meant,meant\ntreffen,meet,met,met\n(be-)zahlen,pay,paid,paid\nlegen/setzen/stellen,put,put,put\nlesen,read,read,read\nreiten/fahren,ride,rode,ridden\nläuten,ring,rang,rung\nlaufen,run,ran,run\nsagen,say,said,said\nsehen,see,saw,seen\nverkaufen,sell,sold,sold\nsenden/schicken,send,sent,sent\nlosfahren/aufbrechen,set off,set off,set off\nschütteln,shake,shook,shaken\nscheinen,shine,shone,shone\nschießen,shoot,shot,shot\nzeigen,show,showed,shown/showed\nsingen,sing,sang,sung\nsitzen/sich setzen,sit,sat,sat\nschlafen,sleep,slept,slept\nriechen,smell,smelt/smelled,smelt/smelled\nsprechen,speak,spoke,spoken\nverbringen/ausgeben,spend,spent,spent\nstehen,stand,stood,stood\nstehlen,steal,stole,stolen\nschwimmen,swim,swam,swum\nnehmen,take,took,taken\nlehren/unterrichten,teach,taught,taught\nsagen/erzählen,tell,told,told\ndenken,think,thought,thought\nwerfen,throw,threw,thrown\nverstehen,understand,understood,understood\naufwachen,wake up,woke up,woken up\ntragen (Kleidung),wear,wore,worn\ngewinnen,win,won,won\nschreiben,write,wrote,written`;
+        const sample = `sein,be,was/were,been\nschlagen,beat,beat,beaten\nwerden,become,became,become\nbeginnen,begin,began,begun\nblasen,blow,blew,blown\nbeugen; biegen,bend,bent,bent\n(zer-)brechen,break,broke,broken\nbringen,bring,brought,brought\nbauen,build,built,built\n(ver-)brennen,burn,burnt|burned,burnt|burned\nkaufen,buy,bought,bought\nfangen,catch,caught,caught\n(aus-)wählen,choose,chose,chosen\nkommen,come,came,come\nkosten,cost,cost,cost\nschneiden,cut,cut,cut\ntun; machen,do,did,done\nzeichnen,draw,drew,drawn\nträumen,dream,dreamt|dreamed,dreamt|dreamed\ntrinken,drink,drank,drunk\nfahren; treiben,drive,drove,driven\nessen,eat,ate,eaten\nfallen,fall,fell,fallen\neinschlafen,fall asleep,fell asleep,fallen asleep\nfüttern,feed,fed,fed\nfühlen,feel,felt,felt\nkämpfen,fight,fought,fought\nfinden,find,found,found\nfliehen,flee,fled,fled\nfliegen,fly,flew,flown\nvergessen,forget,forgot,forgotten\nvergeben,forgive,forgave,forgiven\neinfrieren; erstarren,freeze,froze,frozen\nbekommen; werden,get,got,got\naufstehen,get up,got up,got up\ngeben,give,gave,given\ngehen; fahren,go,went,gone\nwachsen; anbauen,grow,grew,grown\nhängen,hang,hung,hung\nabhängen,hang out,hung out,hung out\nhaben,have,had,had\nhören,hear,heard,heard\n(sich) verstecken,hide,hid,hidden\nschlagen,hit,hit,hit\n(fest-)halten,hold,held,held\n(sich) verletzen; schmerzen,hurt,hurt,hurt\n(be-)halten,keep,kept,kept\nwissen; kennen,know,knew,known\nlernen,learn,learnt|learned,learnt|learned\nverlassen,leave,left,left\nverleihen,lend,lent,lent\nlassen,let,let,let\nverlieren,lose,lost,lost\nmachen,make,made,made\nmeinen,mean,meant,meant\ntreffen,meet,met,met\n(be-)zahlen,pay,paid,paid\nlegen; setzen; stellen,put,put,put\nlesen,read,read,read\nreiten; fahren,ride,rode,ridden\nläuten,ring,rang,rung\nlaufen,run,ran,run\nsagen,say,said,said\nsehen,see,saw,seen\nverkaufen,sell,sold,sold\nsenden; schicken,send,sent,sent\nlosfahren; aufbrechen,set off,set off,set off\nschütteln,shake,shook,shaken\nscheinen,shine,shone,shone\nschießen,shoot,shot,shot\nzeigen,show,showed,shown|showed\nsingen,sing,sang,sung\nsitzen; sich setzen,sit,sat,sat\nschlafen,sleep,slept,slept\nriechen,smell,smelt|smelled,smelt|smelled\nsprechen,speak,spoke,spoken\nverbringen; ausgeben,spend,spent,spent\nstehen,stand,stood,stood\nstehlen,steal,stole,stolen\nschwimmen,swim,swam,swum\nnehmen,take,took,taken\nlehren; unterrichten,teach,taught,taught\nsagen; erzählen,tell,told,told\ndenken,think,thought,thought\nwerfen,throw,threw,thrown\nverstehen,understand,understood,understood\naufwachen,wake up,woke up,woken up\ntragen (Kleidung),wear,wore,worn\ngewinnen,win,won,won\nschreiben,write,wrote,written`;
         parseCSV(sample);
     }
 
