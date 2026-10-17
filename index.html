@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Demian's Irregular Verbs Trainer</title>
     <style>
         :root {
@@ -44,21 +44,27 @@
             margin-bottom: 20px;
             align-items: center;
         }
-        .threshold-group {
+        .threshold-group, .select-group {
             display: flex;
             align-items: center;
             gap: 10px;
             font-weight: bold;
             font-size: 15px;
+            width: 100%;
+            justify-content: center;
         }
-        .threshold-group input {
-            width: 60px;
-            padding: 6px;
+        .threshold-group input, .select-group select {
+            padding: 8px;
             font-size: 15px;
             border: 2px solid #ccc;
-            border-radius: 4px;
-            text-align: center;
+            border-radius: 6px;
+            background: white;
+            outline: none;
         }
+        .threshold-group input { width: 60px; text-align: center; }
+        .select-group select { width: 220px; cursor: pointer; }
+        .select-group select:focus, .threshold-group input:focus { border-color: var(--primary); }
+        
         .btn {
             background-color: var(--primary);
             color: white;
@@ -73,7 +79,8 @@
         }
         .btn:hover { opacity: 0.9; }
         .btn-alt { background-color: #6c757d; }
-        .button-row { display: flex; gap: 10px; width: 100%; justify-content: center; }
+        .button-row { display: flex; gap: 10px; width: 100%; justify-content: center; margin-top: 5px; }
+        
         .quiz-zone {
             display: none;
             text-align: center;
@@ -86,7 +93,6 @@
             color: var(--dark);
         }
         
-        /* standardmäßiges Desktop Layout (Nebeneinander) */
         .input-group {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -136,33 +142,17 @@
         .text-danger { color: #b72733; font-weight: bold; }
         .empty-state { text-align: center; font-style: italic; color: #888; padding: 20px; }
 
-        /* --- MOBILGERÄTE LAYOUT (Wird aktiv, wenn Bildschirm schmaler als 600px ist) --- */
         @media (max-width: 600px) {
             body { padding: 10px; }
             .container { padding: 15px; }
             .prompt { font-size: 24px; }
-            
-            /* Eingabefelder untereinander anzeigen */
-            .input-group {
-                grid-template-columns: 1fr;
-                gap: 12px;
-            }
-            .input-field label {
-                font-size: 14px;
-                margin-bottom: 3px;
-            }
-            input[type="text"] {
-                padding: 14px; /* Größeres Touch-Ziel auf Smartphones */
-                font-size: 18px; /* Verhindert automatisches iOS-Zoom-In beim Tippen */
-            }
-            .button-row {
-                flex-direction: column;
-                align-items: center;
-            }
+            .input-group { grid-template-columns: 1fr; gap: 12px; }
+            .input-field label { font-size: 14px; margin-bottom: 3px; }
+            input[type="text"] { padding: 14px; font-size: 18px; }
+            .button-row { flex-direction: column; align-items: center; }
             .btn { max-width: 100%; width: 100%; }
-            .threshold-group { flex-direction: column; text-align: center; }
-            
-            /* Scoreboard Tabelle für Mobilgeräte scrollbar machen */
+            .threshold-group, .select-group { flex-direction: column; text-align: center; }
+            .select-group select { width: 100%; }
             th, td { padding: 8px 5px; font-size: 13px; }
         }
     </style>
@@ -177,7 +167,20 @@
             <label for="thresholdX">Schwellenwert (Entfernen wenn Richtig - Falsch ≥ Schwellenwert):</label>
             <input type="number" id="thresholdX" value="3" min="1">
         </div>
-        <p style="margin: 5px 0 15px 0; color: #666; font-size: 13px; text-align: center;">Verben fliegen aus der Liste und dem Scoreboard, sobald sie sicher beherrscht werden.</p>
+        
+        <div class="select-group">
+            <label for="sectionSelect">Übungsumfang:</label>
+            <select id="sectionSelect">
+                <option value="all">Alle Verben üben</option>
+                <option value="1">1. Viertel (Erster Teil)</option>
+                <option value="2">2. Viertel (Zweiter Teil)</option>
+                <option value="3">3. Viertel (Dritter Teil)</option>
+                <option value="4">4. Viertel (Restliche Verben)</option>
+            </select>
+        </div>
+
+        <p style="margin: 5px 0 10px 0; color: #666; font-size: 13px; text-align: center;">Wähle den Umfang und lade deine CSV-Datei oder die Demodaten.</p>
+        
         <div class="button-row">
             <input type="file" id="csvFile" accept=".csv" style="display: none;">
             <button class="btn" onclick="document.getElementById('csvFile').click()">CSV auswählen</button>
@@ -192,16 +195,19 @@
         <form id="quizForm" onsubmit="handleNormalizeSubmit(event)">
             <div class="input-group">
                 <div class="input-field">
-                    <label>Present Tense</label>
-                    <input type="text" id="inputPres" autocomplete="off" autocapitalize="none" autocorrect="off" inputmode="text" required>
+                    <label>Present Tense
+                        <input type="text" id="inputPres" autocomplete="off" autocapitalize="none" autocorrect="off" inputmode="text" required>
+                    </label>
                 </div>
                 <div class="input-field">
-                    <label>Past Simple</label>
-                    <input type="text" id="inputPast" autocomplete="off" autocapitalize="none" autocorrect="off" inputmode="text" required>
+                    <label>Past Simple
+                        <input type="text" id="inputPast" autocomplete="off" autocapitalize="none" autocorrect="off" inputmode="text" required>
+                    </label>
                 </div>
                 <div class="input-field">
-                    <label>Past Participle</label>
-                    <input type="text" id="inputPart" autocomplete="off" autocapitalize="none" autocorrect="off" inputmode="text" required>
+                    <label>Past Participle
+                        <input type="text" id="inputPart" autocomplete="off" autocapitalize="none" autocorrect="off" inputmode="text" required>
+                    </label>
                 </div>
             </div>
             <button type="submit" class="btn" id="submitBtn">Check</button>
@@ -271,15 +277,15 @@
     }
 
     function parseCSV(text) {
-        verbs = [];
+        let allParsedVerbs = [];
         // Read configuration dynamic threshold right during import
         thresholdX = parseInt(document.getElementById('thresholdX').value) || 3;
-        
+        const selectedSection = document.getElementById('sectionSelect').value;
         const lines = text.split(/\r?\n/);
         lines.forEach(line => {
             const parts = line.split(',');
             if (parts.length >= 4 && parts[0].trim() !== "") {
-                verbs.push({
+                allParsedVerbs.push({
                     de: parts[0].trim(),
                     pres: parts[1].trim(),
                     past: parts[2].trim(),
@@ -289,7 +295,34 @@
                 });
             }
         });
-        if (verbs.length > 0) {
+        if (allParsedVerbs.length > 0) {
+            // Viertel-Berechnung mit Aufrundungs-Logik
+            if (selectedSection === 'all') {
+                verbs = allParsedVerbs;
+            } else {
+                const total = allParsedVerbs.length;
+                const chunkSize = Math.ceil(total / 4);
+                let startIdx = 0;
+                let endIdx = 0;
+                if (selectedSection === '1') {
+                    startIdx = 0;
+                    endIdx = chunkSize;
+                } else if (selectedSection === '2') {
+                    startIdx = chunkSize;
+                    endIdx = chunkSize * 2;
+                } else if (selectedSection === '3') {
+                    startIdx = chunkSize * 2;
+                    endIdx = chunkSize * 3;
+                } else if (selectedSection === '4') {
+                    startIdx = chunkSize * 3;
+                    endIdx = total; // Nimmt exakt die verbleibenden Reste auf
+                }
+                verbs = allParsedVerbs.slice(startIdx, endIdx);
+            }
+            if (verbs.length === 0) {
+                alert("Der gewählte Abschnitt enthält keine Verben (z. B. Datei zu kurz).");
+                return;
+            }
             document.getElementById('importZone').style.display = 'none';
             document.getElementById('quizZone').style.display = 'block';
             document.getElementById('scoreboardZone').style.display = 'block';
@@ -361,7 +394,7 @@
                 feedbackEl.className = "feedback correct";
                 playCheeringSound();
                 updateScoreboard();
-                setTimeout(nextQuestion, 1500);
+                setTimeout(nextQuestion, 1000);
             }
         } else {
             currentVerb.incorrect++;
@@ -398,7 +431,6 @@
             tbody.appendChild(tr);
         });
     }
-
 
 </script>
 </body>
