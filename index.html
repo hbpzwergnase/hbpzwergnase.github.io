@@ -152,10 +152,13 @@
         .celebration-screen {
             animation: pulse 1.5s infinite alternate;
             padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         @keyframes pulse {
             from { transform: scale(1); }
-            to { transform: scale(1.03); }
+            to { transform: scale(1.2); }
         }
         
         .scoreboard-zone { margin-top: 30px; display: none; overflow-x: auto; }
@@ -269,7 +272,7 @@
     let currentVerb = null;
     let isWaitingForNext = false;
     let thresholdX = 3;
-
+    let originalRawText = ""; // Merkt sich die geladenen CSV-Rohdaten für den Soft-Reset
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     
     function isSoundEnabled() {
@@ -366,6 +369,7 @@
     }
 
     function parseCSV(text) {
+        originalRawText = text; // Sichert den Text für spätere Restarts
         let allParsedVerbs = [];
         // Read configuration dynamic threshold right during import
         thresholdX = parseInt(document.getElementById('thresholdX').value) || 3;
@@ -423,9 +427,48 @@
         }
     }
 
+    // Zurück zum Startbildschirm (wird vom Reset-Button aufgerufen)
+    function resetToMainMenu() {
+        // Stellt die originale Quiz-Struktur wieder her
+        document.getElementById('quizZone').innerHTML = `
+            <div class="prompt" id="germanPrompt">Wort</div>
+        
+            <form id="quizForm" onsubmit="handleNormalizeSubmit(event)">
+                <div class="input-group">
+                    <div class="input-field">
+                        <label>Present Tense
+                            <input type="text" id="inputPres" autocomplete="off" autocapitalize="none" autocorrect="off" inputmode="text" required>
+                        </label>
+                    </div>
+                    <div class="input-field">
+                        <label>Past Simple
+                            <input type="text" id="inputPast" autocomplete="off" autocapitalize="none" autocorrect="off" inputmode="text" required>
+                        </label>
+                    </div>
+                    <div class="input-field">
+                        <label>Past Participle
+                            <input type="text" id="inputPart" autocomplete="off" autocapitalize="none" autocorrect="off" inputmode="text" required>
+                        </label>
+                    </div>
+                </div>
+                <button type="submit" class="btn" id="submitBtn">Check</button>
+            </form>
+
+            <div id="feedback" class="feedback"></div>
+        `;
+        // Sichtbarkeiten umschalten
+        document.getElementById('soundLabel').textContent = "🔊 Enable sound";
+        document.getElementById('importZone').style.display = 'flex';
+        document.getElementById('quizZone').style.display = 'none';
+        document.getElementById('scoreboardZone').style.display = 'none';
+        // Input-Dateiauswahl leeren, damit dieselbe Datei erneut ausgewählt werden kann
+        document.getElementById('csvFile').value = "";
+        verbs = [];
+    }
+
     function nextQuestion() {
         if (verbs.length === 0) {
-            document.getElementById('quizZone').innerHTML = "<div class='prompt' style='font-size: 40px;'>👑📯🎜🥇</div> <div class='prompt' style='color: var(--success);'>Great! You're done!</div>";
+            document.getElementById('quizZone').innerHTML = "<div class='celebration-screen'> <div class='prompt' style='font-size: 40px;'>👑📯🎜🥇</div> <div class='prompt' style='color: var(--success); margin-bottom: 25px;'>Great! You're done!</div> <button class='btn' onclick='resetToMainMenu()'>Back to Main Menu</button> </div>";
             return;
         }
 
