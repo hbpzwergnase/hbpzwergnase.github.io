@@ -31,6 +31,8 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
             margin-bottom: 20px;
             box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
         }
         h1, h2 { text-align: center; color: var(--primary); margin-top: 0; }
         .config-zone {
@@ -146,6 +148,16 @@
         .feedback.wrong { background-color: #f8d7da; color: #721c24; display: block; }
         .feedback.removed { background-color: #e2f0d9; color: #385723; display: block; border: 2px solid #385723; }
         
+        /* Finale Ansicht */
+        .celebration-screen {
+            animation: pulse 1.5s infinite alternate;
+            padding: 20px;
+        }
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.03); }
+        }
+        
         .scoreboard-zone { margin-top: 30px; display: none; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
@@ -239,7 +251,7 @@
 
 <!-- Scoreboard Zone -->
 <div class="container scoreboard-zone" id="scoreboardZone">
-    <h2>📊 Scoreboard -- <span id="verbCount">0</span> verb(s) left</h2>
+    <h2>📊 Scoreboard - <span id="verbCount">0</span></h2>
     <table>
         <thead>
             <tr>
@@ -259,6 +271,12 @@
     let thresholdX = 3;
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function isSoundEnabled() {
+        return document.getElementById('soundToggle').checked;
+    }
+
+// Normaler Jubel-Sound bei richtiger Antwort
     function playCheeringSound() {
         if (!isSoundEnabled()) return;
         const duration = 1.5;
@@ -281,12 +299,37 @@
             }, index * 80);
         });
     }
-
-    function isSoundEnabled() {
-        return document.getElementById('soundToggle').checked;
+    
+    // NEU: Epische Abschluss-Fanfare, wenn alle Verben gelöst wurden
+    function playFanfareSound() {
+        if (!isSoundEnabled()) return;
+        const now = audioCtx.currentTime;
+        // Sequenz aus festlichen, triumphierenden Dreiklängen
+        const notes = [
+            { f: [196.00, 246.94, 293.66], time: 0, dur: 0.3 },     // G-Dur Kurz
+            { f: [220.00, 277.18, 329.63], time: 0.3, dur: 0.3 },   // A-Dur Kurz
+            { f: [261.63, 329.63, 392.00], time: 0.6, dur: 0.4 },   // C-Dur Mittel
+            { f: [392.00, 493.88, 587.33], time: 1.0, dur: 1.2 }    // Hohes G-Dur Lang (Finale)
+        ];
+        notes.forEach(note => {
+            note.f.forEach(freq => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, now + note.time);
+                // Einblenden / Halten / Ausblenden
+                gain.gain.setValueAtTime(0, now + note.time);
+                gain.gain.linearRampToValueAtTime(0.08, now + note.time + 0.05);
+                gain.gain.setValueAtTime(0.08, now + note.time + note.dur - 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + note.time + note.dur);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now + note.time);
+                osc.stop(now + note.time + note.dur);
+            });
+        });
     }
 
-    // NEU: Sound bei falscher Antwort (Zweifach-Ton nach unten)
     function playErrorSound() {
         if (!isSoundEnabled()) return;
         const duration = 0.4;
@@ -382,7 +425,7 @@
 
     function nextQuestion() {
         if (verbs.length === 0) {
-            document.getElementById('quizZone').innerHTML = "<div class='prompt'>🎉 Great! You're done!</div>";
+            document.getElementById('quizZone').innerHTML = "<div class='prompt' style='font-size: 40px;'>👑📯🎜🥇</div> <div class='prompt' style='color: var(--success);'>Great! You're done!</div>";
             return;
         }
 
@@ -433,9 +476,15 @@
                 feedbackEl.className = "feedback removed";
                 // Remove from core data array
                 verbs = verbs.filter(v => v !== currentVerb);
-                playCheeringSound();
                 updateScoreboard();
-                setTimeout(nextQuestion, 2000);
+                // Prüfen, ob das soeben gelöschte Verb das absolut LETZTE war
+                if (verbs.length === 0) {
+                    playFanfareSound(); // <-- Abspielen der Abschluss-Fanfare
+                    setTimeout(nextQuestion, 1000);
+                } else {
+                    playCheeringSound();
+                    setTimeout(nextQuestion, 2000);
+                }
             } else {
                 feedbackEl.textContent = "🎉 Well done!";
                 feedbackEl.className = "feedback correct";
@@ -461,7 +510,11 @@
     }
 
     function updateScoreboard() {
-        document.getElementById('verbCount').textContent = verbs.length;
+        if (verbs.length === 1) {
+            document.getElementById('verbCount').textContent = "1 verb left";
+        } else {
+            document.getElementById('verbCount').textContent = verbs.length + " verbs left";
+        }
         const tbody = document.getElementById('scoreboardBody');
         tbody.innerHTML = '';
         if (verbs.length === 0) {
