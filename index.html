@@ -230,17 +230,17 @@
         <form id="quizForm" onsubmit="handleNormalizeSubmit(event)">
             <div class="input-group">
                 <div class="input-field">
-                    <label>Base Form
+                    <label>base form
                         <input type="text" id="inputPres" autocomplete="off" autocapitalize="none" autocorrect="off" inputmode="text" required>
                     </label>
                 </div>
                 <div class="input-field">
-                    <label>Past Simple
+                    <label>past simple
                         <input type="text" id="inputPast" autocomplete="off" autocapitalize="none" autocorrect="off" inputmode="text" required>
                     </label>
                 </div>
                 <div class="input-field">
-                    <label>Past Participle
+                    <label>past participle
                         <input type="text" id="inputPart" autocomplete="off" autocapitalize="none" autocorrect="off" inputmode="text" required>
                     </label>
                 </div>
@@ -547,9 +547,9 @@
     }
 
     function checkAnswer(input, target) {
-        const clean = (str) => str.toLowerCase().replace(/\s+/g, '');
+        //const clean = (str) => str.toLowerCase().replace(/\s+/g, '');
         const targetOptions = target.split('|');
-        return targetOptions.some(opt => clean(input) === clean(opt));
+        return targetOptions.some(opt => input === opt);
     }
 
     function updateScoreboard() {
