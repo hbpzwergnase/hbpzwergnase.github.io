@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C-Dur Intervall-Trainer</title>
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --success: #2ecc71;
+            --error: #e74c3c;
+            --background: #f5f7fa;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1 {
+            margin-top: 0;
+            color: var(--primary);
+            font-size: 24px;
+        }
+
+        .score-board {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+
+        .display-box {
+            background: #edf2f7;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .tone-card {
+            background: white;
+            border: 2px solid #cbd5e0;
+            border-radius: 6px;
+            padding: 10px 20px;
+            font-size: 28px;
+            font-weight: bold;
+            min-width: 60px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .arrow {
+            font-size: 24px;
+            color: #a0aec0;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 480px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        button.option-btn {
+            background-color: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text);
+        }
+
+        button.option-btn:hover:not(:disabled) {
+            border-color: var(--primary);
+            background-color: #f7fafc;
+        }
+
+        button.option-btn:disabled {
+            cursor: not-allowed;
+        }
+
+        button.option-btn.correct {
+            background-color: var(--success) !important;
+            border-color: var(--success) !important;
+            color: white;
+        }
+
+        button.option-btn.wrong {
+            background-color: var(--error) !important;
+            border-color: var(--error) !important;
+            color: white;
+        }
+
+        .feedback {
+            font-size: 18px;
+            font-weight: 600;
+            min-height: 27px;
+            margin-bottom: 20px;
+        }
+
+        .feedback.success { color: var(--success); }
+        .feedback.error { color: var(--error); }
+
+        .next-btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: none;
+            margin: 0 auto;
+        }
+
+        .next-btn:hover {
+            background-color: #3182ce;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>C-Dur Intervall-Trainer</h1>
+    <div class="score-board">Richtig: <span id="score">0</span> / Gesamt: <span id="total">0</span></div>
+
+    <div class="display-box">
+        <div class="tone-card" id="tone1">-</div>
+        <div class="arrow">➔</div>
+        <div class="tone-card" id="tone2">-</div>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="grid" id="options-grid"></div>
+
+    <button class="next-btn" id="next-btn" onclick="generateQuestion()">Nächstes Intervall</button>
+</div>
+
+<script>
+    // Definition der C-Dur Töne über 2 Oktaven mit ihren Halbton-Abständen (von C4 aus)
+    const cMajorScale = [
+        { name: "C", semitones: 0 },
+        { name: "D", semitones: 2 },
+        { name: "E", semitones: 4 },
+        { name: "F", semitones: 5 },
+        { name: "G", semitones: 7 },
+        { name: "A", semitones: 9 },
+        { name: "H", semitones: 11 },
+        { name: "C'", semitones: 12 },
+        { name: "D'", semitones: 14 },
+        { name: "E'", semitones: 16 },
+        { name: "F'", semitones: 17 },
+        { name: "G'", semitones: 19 },
+        { name: "A'", semitones: 21 },
+        { name: "H'", semitones: 23 },
+        { name: "C''", semitones: 24 }
+    ];
+
+    // Liste aller vorgegebenen Intervalle mit ihren Halbtonschritten
+    const intervals = [
+        { name: "Prime", steps: 0 },
+        { name: "kleine Sekunde", steps: 1 },
+        { name: "große Sekunde", steps: 2 },
+        { name: "kleine Terz", steps: 3 },
+        { name: "große Terz", steps: 4 },
+        { name: "reine Quarte", steps: 5 },
+        { name: "übermäßige Quarte", steps: 6 },
+        { name: "verminderte Quinte", steps: 7 },
+        { name: "reine Quinte", steps: 8 },
+        { name: "kleine Sext", steps: 9 },
+        { name: "große Sext", steps: 10 },
+        { name: "kleine Septime", steps: 11 },
+        { name: "große Septime", steps: 12 },
+        { name: "Oktave", steps: 13 } // Hinweis: Oktave hat auch 12 Schritte. Wenn Abstand 12 ist, wird "Oktave" bevorzugt, es sei denn es ist eine Prime der nächsten Oktave. Das Skript fängt das logisch ab.
+    ];
+
+    let currentCorrectInterval = "";
+    let score = 0;
+    let total = 0;
+
+    // Erstellt die Antwort-Buttons dynamisch aus der Liste
+    function setupButtons() {
+        const grid = document.getElementById("options-grid");
+        grid.innerHTML = "";
+        intervals.forEach(interv => {
+            if (!document.querySelector(`button[data-name="${interv.name}"]`)) {
+                const btn = document.createElement("button");
+                btn.className = "option-btn";
+                btn.innerText = interv.name;
+                btn.setAttribute("data-name", interv.name);
+                btn.onclick = () => checkAnswer(interv.name, btn);
+                grid.appendChild(btn);
+            }
+        });
+    }
+
+    function generateQuestion() {
+        // Reset UI
+        document.getElementById("feedback").innerText = "";
+        document.getElementById("feedback").className = "feedback";
+        document.getElementById("next-btn").style.display = "none";
+        
+        const buttons = document.querySelectorAll(".option-btn");
+        buttons.forEach(b => {
+            b.className = "option-btn";
+            b.disabled = false;
+        });
+
+        // Wähle zwei zufällige Töne aus (Ton 2 ist immer gleich hoch oder höher als Ton 1)
+        let idx1 = Math.floor(Math.random() * 7); // Nur die ersten 7 Töne (C' bis H') für die erste Note
+        let idx2 = idx1 + Math.floor(Math.random() * 8);
+        if (idx1 === 7) {idx1 = 6;} // Sicherstellen, dass idx1 nicht außerhalb des Bereichs liegt
+        if (idx2 === 8) {idx2 = 7;} // Sicherstellen, dass idx2 nicht außerhalb des Bereichs liegt
+
+        const tone1 = cMajorScale[idx1];
+        const tone2 = cMajorScale[idx2];
+
+        document.getElementById("tone1").innerText = tone1.name;
+        document.getElementById("tone2").innerText = tone2.name;
+
+        const diffSteps = idx2 - idx1 + 1;
+
+        if (diffSteps === 1) {
+            currentCorrectInterval = "Prime";
+
+        } else if (diffSteps === 2 && tone1.name === "E") {
+            currentCorrectInterval = "kleine Sekunde";
+
+        } else if (diffSteps === 2 && tone1.name === "H") {
+            currentCorrectInterval = "kleine Sekunde";
+
+        } else if (diffSteps === 2) {
+            currentCorrectInterval = "große Sekunde";
+
+        } else if (diffSteps === 3 && tone1.name === "C") {
+            currentCorrectInterval = "große Terz";
+
+        } else if (diffSteps === 3 && tone1.name === "F") {
+            currentCorrectInterval = "große Terz";
+
+        } else if (diffSteps === 3 && tone1.name === "G") {
+            currentCorrectInterval = "große Terz";
+
+        } else if (diffSteps === 3) {
+            currentCorrectInterval = "kleine Terz";
+
+        } else if (diffSteps === 4 && tone1.name === "F") {
+            currentCorrectInterval = "übermäßige Quarte";
+
+        } else if (diffSteps === 4) {
+            currentCorrectInterval = "reine Quarte";
+
+        } else if (diffSteps === 5 && tone1.name === "H") {
+            currentCorrectInterval = "verminderte Quinte";
+
+        } else if (diffSteps === 5) {
+            currentCorrectInterval = "reine Quinte";
+
+        } else if (diffSteps === 6 && tone1.name === "E") {
+            currentCorrectInterval = "kleine Sext";
+
+        } else if (diffSteps === 6 && tone1.name === "A") {
+            currentCorrectInterval = "kleine Sext";
+
+        } else if (diffSteps === 6 && tone1.name === "H") {
+            currentCorrectInterval = "kleine Sext";
+
+        } else if (diffSteps === 6) {
+            currentCorrectInterval = "große Sext";
+
+        } else if (diffSteps === 7 && tone1.name === "C") {
+            currentCorrectInterval = "große Septime";
+
+        } else if (diffSteps === 7 && tone1.name === "F") {
+            currentCorrectInterval = "große Septime";
+
+        } else if (diffSteps === 7) {
+            currentCorrectInterval = "kleine Septime";
+
+        } else if (diffSteps === 8) {
+            currentCorrectInterval = "Oktave";
+
+        } else {
+            // Sicherheits-Fallback falls eine Kombination außerhalb der Liste rutscht
+            currentCorrectInterval = "Unbekannt";
+        }
+    }
+
+    function checkAnswer(selectedName, clickedButton) {
+        total++;
+        document.getElementById("total").innerText = total;
+
+        const buttons = document.querySelectorAll(".option-btn");
+        buttons.forEach(b => b.disabled = true);
+
+        const feedbackDiv = document.getElementById("feedback");
+
+        if (selectedName === currentCorrectInterval) {
+            score++;
+            document.getElementById("score").innerText = score;
+            clickedButton.classList.add("correct");
+            feedbackDiv.innerText = "Richtig gut gemacht! 🎉";
+            feedbackDiv.classList.add("success");
+        } else {
+            clickedButton.classList.add("wrong");
+            // Zeige den richtigen Button grün an
+            buttons.forEach(b => {
+                if (b.getAttribute("data-name") === currentCorrectInterval) {
+                    b.classList.add("correct");
+                }
+            });
+            feedbackDiv.innerText = `Leider falsch. Richtig wäre: ${currentCorrectInterval}`;
+            feedbackDiv.classList.add("error");
+        }
+        document.getElementById("next-btn").style.display = "block";
+    }   
+
+    // Initialisierung beim Laden der Seite
+    setupButtons();
+    generateQuestion();
+</script>
+</body>
+</html>
