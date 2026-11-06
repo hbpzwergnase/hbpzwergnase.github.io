@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>C-Dur Intervall-Trainer</title>
+    <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
     <style>
         :root {
             --primary: #4a90e2;
@@ -156,10 +157,16 @@
     <h1>C-Dur Intervall-Trainer</h1>
     <div class="score-board">Richtig: <span id="score">0</span> / Gesamt: <span id="total">0</span></div>
 
+    <!--
     <div class="display-box">
         <div class="tone-card" id="tone1">-</div>
         <div class="arrow">➔</div>
         <div class="tone-card" id="tone2">-</div>
+    </div>
+    -->
+
+    <div class="display-box-vex">
+        <div id="notation"></div>
     </div>
 
     <div class="feedback" id="feedback"></div>
@@ -170,23 +177,25 @@
 </div>
 
 <script>
+    const { Renderer, Stave, StaveNote, Voice, Formatter } = Vex.Flow;
+
     // Definition der C-Dur Töne über 2 Oktaven mit ihren Halbton-Abständen (von C4 aus)
     const cMajorScale = [
-        { name: "C", semitones: 0 },
-        { name: "D", semitones: 2 },
-        { name: "E", semitones: 4 },
-        { name: "F", semitones: 5 },
-        { name: "G", semitones: 7 },
-        { name: "A", semitones: 9 },
-        { name: "H", semitones: 11 },
-        { name: "C'", semitones: 12 },
-        { name: "D'", semitones: 14 },
-        { name: "E'", semitones: 16 },
-        { name: "F'", semitones: 17 },
-        { name: "G'", semitones: 19 },
-        { name: "A'", semitones: 21 },
-        { name: "H'", semitones: 23 },
-        { name: "C''", semitones: 24 }
+        { name: "C",   bass: "c/2", treble: "c/4" },
+        { name: "D",   bass: "d/2", treble: "d/4" },
+        { name: "E",   bass: "e/2", treble: "e/4" },
+        { name: "F",   bass: "f/2", treble: "f/4" },
+        { name: "G",   bass: "g/2", treble: "g/4" },
+        { name: "A",   bass: "a/2", treble: "a/4" },
+        { name: "H",   bass: "b/2", treble: "b/4" },
+        { name: "C'",  bass: "c/3", treble: "c/5" },
+        { name: "D'",  bass: "d/3", treble: "d/5" },
+        { name: "E'",  bass: "e/3", treble: "e/5" },
+        { name: "F'",  bass: "f/3", treble: "f/5" },
+        { name: "G'",  bass: "g/3", treble: "g/5" },
+        { name: "A'",  bass: "a/3", treble: "a/5" },
+        { name: "H'",  bass: "b/3", treble: "b/5" },
+        { name: "C''", bass: "c/4", treble: "c/6" }
     ];
 
     // Liste aller vorgegebenen Intervalle mit ihren Halbtonschritten
@@ -244,12 +253,18 @@
         let idx2 = idx1 + Math.floor(Math.random() * 8);
         if (idx1 === 7) {idx1 = 6;} // Sicherstellen, dass idx1 nicht außerhalb des Bereichs liegt
         if (idx2 === 8) {idx2 = 7;} // Sicherstellen, dass idx2 nicht außerhalb des Bereichs liegt
+        let idx3 = Math.floor(Math.random() * 2);
 
         const tone1 = cMajorScale[idx1];
         const tone2 = cMajorScale[idx2];
 
-        document.getElementById("tone1").innerText = tone1.name;
-        document.getElementById("tone2").innerText = tone2.name;
+        // document.getElementById("tone1").innerText = tone1.name;
+        // document.getElementById("tone2").innerText = tone2.name;
+        if (idx3 === 0) {
+            renderNotes(tone1.treble, tone2.treble, "treble");
+        } else {
+            renderNotes(tone1.bass, tone2.bass, "bass");
+        }
 
         const diffSteps = idx2 - idx1 + 1;
 
@@ -347,6 +362,30 @@
         }
         document.getElementById("next-btn").style.display = "block";
     }   
+
+    function renderNotes(k1, k2, clef) {
+        const div = document.getElementById("notation");
+        div.innerHTML = ""; // Altes Notensystem löschen
+
+        const renderer = new Renderer(div, Renderer.Backends.SVG);
+        renderer.resize(150, 140);
+        const context = renderer.getContext();
+
+        // Notenlinien zeichnen (Zentriert)
+        const stave = new Stave(10, 10, 130);
+        stave.addClef(clef).setContext(context).draw();
+
+        // VexFlow Notenobjekte erstellen
+        const note1 = new StaveNote({ keys: [k1], duration: "w", clef: clef });
+        const note2 = new StaveNote({ keys: [k2], duration: "w", clef: clef });
+
+        // Stimmen-Verarbeitung für das Layout
+        const voice = new Voice({ num_beats: 2, beat_value: 1 });
+        voice.addTickables([note1, note2]);
+
+        new Formatter().joinVoices([voice]).format([voice], 70);
+        voice.draw(context, stave);
+    }
 
     // Initialisierung beim Laden der Seite
     setupButtons();
