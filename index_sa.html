@@ -157,13 +157,11 @@
     <h1>C-Dur Intervall-Trainer</h1>
     <div class="score-board">Richtig: <span id="score">0</span> / Gesamt: <span id="total">0</span></div>
 
-    <!--
     <div class="display-box">
         <div class="tone-card" id="tone1">-</div>
         <div class="arrow">➔</div>
         <div class="tone-card" id="tone2">-</div>
     </div>
-    -->
 
     <div class="display-box-vex">
         <div id="notation"></div>
@@ -219,6 +217,9 @@
     let currentCorrectInterval = "";
     let score = 0;
     let total = 0;
+    let tone1 = cMajorScale[0];
+    let tone2 = cMajorScale[0];
+    let bass_vs_treble = 0;
 
     // Erstellt die Antwort-Buttons dynamisch aus der Liste
     function setupButtons() {
@@ -253,14 +254,14 @@
         let idx2 = idx1 + Math.floor(Math.random() * 8);
         if (idx1 === 7) {idx1 = 6;} // Sicherstellen, dass idx1 nicht außerhalb des Bereichs liegt
         if (idx2 === 8) {idx2 = 7;} // Sicherstellen, dass idx2 nicht außerhalb des Bereichs liegt
-        let idx3 = Math.floor(Math.random() * 2);
+        bass_vs_treble = Math.floor(Math.random() * 2);
 
-        const tone1 = cMajorScale[idx1];
-        const tone2 = cMajorScale[idx2];
+        tone1 = cMajorScale[idx1];
+        tone2 = cMajorScale[idx2];
 
-        // document.getElementById("tone1").innerText = tone1.name;
-        // document.getElementById("tone2").innerText = tone2.name;
-        if (idx3 === 0) {
+        document.getElementById("tone1").innerText = "?";
+        document.getElementById("tone2").innerText = "?";
+        if (bass_vs_treble === 0) {
             renderNotes(tone1.treble, tone2.treble, "treble");
         } else {
             renderNotes(tone1.bass, tone2.bass, "bass");
@@ -342,6 +343,14 @@
         buttons.forEach(b => b.disabled = true);
 
         const feedbackDiv = document.getElementById("feedback");
+
+        if (bass_vs_treble === 0) {
+            document.getElementById("tone1").innerText = tone1.treble;
+            document.getElementById("tone2").innerText = tone2.treble;
+        } else {
+            document.getElementById("tone1").innerText = tone1.bass;
+            document.getElementById("tone2").innerText = tone2.bass;
+        }
 
         if (selectedName === currentCorrectInterval) {
             score++;
